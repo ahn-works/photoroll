@@ -54,7 +54,14 @@ class WallpaperScheduleReceiver : BroadcastReceiver() {
 
         private fun scheduleInterval(alarmManager: AlarmManager, pi: PendingIntent, intervalMs: Long) {
             val triggerAt = System.currentTimeMillis() + intervalMs
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+ (API 31+) 정확한 알람 권한 확인 및 예외 방지 안전 처리
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
@@ -72,7 +79,13 @@ class WallpaperScheduleReceiver : BroadcastReceiver() {
             if (target.before(now)) {
                 target.add(Calendar.DAY_OF_YEAR, 1)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)

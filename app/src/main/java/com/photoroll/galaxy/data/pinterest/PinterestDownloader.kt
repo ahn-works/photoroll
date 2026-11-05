@@ -46,7 +46,15 @@ object PinterestDownloader {
                 }
             }
 
-            // 3. 덱에 사진 추가
+            // 3. 파일 유효성 검증 (정상 이미지 디코딩 가능한지 확인)
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeFile(outputFile.absolutePath, decodeOptions)
+            if (decodeOptions.outWidth <= 0 || decodeOptions.outHeight <= 0) {
+                outputFile.delete()
+                return@withContext onError("다운로드된 파일이 유효한 이미지가 아닙니다.")
+            }
+
+            // 4. 덱에 사진 추가
             val savedUri = Uri.fromFile(outputFile)
             val newPhoto = PhotoItem(
                 uriString = savedUri.toString(),
