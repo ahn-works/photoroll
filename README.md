@@ -1,7 +1,15 @@
 # PhotoRoll Galaxy (다이내믹 홈·잠금화면 배경화면 앱)
 
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live_Website-blue?logo=github)](https://ahn-works.github.io/photoroll/)
+[![Build Status](https://github.com/ahn-works/photoroll/actions/workflows/build_playstore_aab.yml/badge.svg)](https://github.com/ahn-works/photoroll/actions/workflows/build_playstore_aab.yml)
+[![Privacy Policy](https://img.shields.io/badge/Privacy_Policy-Live-green)](https://ahn-works.github.io/photoroll/privacy.html)
+
 삼성 갤럭시 전용 **홈 화면 및 잠금화면 다이내믹 사진 로테이션 안드로이드 앱**입니다.  
 기존 갤럭시의 "잠금화면 멀티팩" 제한을 넘어, **홈 화면에서도 수십 장의 사진을 켤 때마다, 시간마다, 매일, 주말마다 자유롭게 자동 순환**시킵니다.
+
+* 🌐 **공식 라이브 웹사이트 & 시뮬레이터**: [https://ahn-works.github.io/photoroll/](https://ahn-works.github.io/photoroll/)
+* 🔒 **구글 플레이 필수 개인정보처리방침**: [https://ahn-works.github.io/photoroll/privacy.html](https://ahn-works.github.io/photoroll/privacy.html)
+* 📖 **5분 플레이스토어 등록 가이드**: [https://ahn-works.github.io/photoroll/guide.html](https://ahn-works.github.io/photoroll/guide.html)
 
 ---
 
