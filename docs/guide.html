@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoRoll Galaxy - 구글 플레이 스토어 5분 등록 가이드</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f6f9;
+            color: #202124;
+            margin: 0;
+            padding: 30px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        h1 { color: #0381FE; font-size: 28px; margin-bottom: 8px; }
+        .subtitle { color: #5f6368; font-size: 15px; margin-bottom: 30px; }
+        .step {
+            display: flex;
+            margin-bottom: 24px;
+            background: #f8fafd;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid #0381FE;
+        }
+        .step-num {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0381FE;
+            margin-right: 18px;
+            min-width: 32px;
+        }
+        .step-body h3 { margin: 0 0 8px 0; font-size: 18px; }
+        .step-body p { margin: 0 0 8px 0; font-size: 14px; color: #444; }
+        .code-box {
+            background: #202124;
+            color: #8ab4f8;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin-top: 6px;
+        }
+        .badge {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1a73e8;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 PhotoRoll Galaxy 구글 플레이 스토어 5분 등록 가이드</h1>
+        <p class="subtitle">모든 코드와 에셋(아이콘, 배너, 소개문, 개인정보처리방침)이 100% 준비되어 있습니다. 아래 순서대로 드래그 앤 드롭하시면 심사가 시작됩니다.</p>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <h3>Google Play Console 로그인 및 앱 생성</h3>
+                <p><a href="https://play.google.com/console" target="_blank">Google Play Console</a>에 로그인한 후 우측 상단의 <strong>[앱 만들기]</strong>를 클릭합니다.</p>
+                <p>• 앱 이름: <code>PhotoRoll - 갤럭시 홈·잠금화면 사진 변경기</code><br>
+                • 기본 언어: <code>한국어</code><br>
+                • 앱/게임: <code>앱</code> / 무료/유료: <code>무료</code></p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <h3>스토어 등록정보 복사 및 그래픽 업로드</h3>
+                <p>좌측 메뉴의 <strong>[성장] &gt; [스토어 등록정보] &gt; [기본 스토어 등록정보]</strong>로 이동합니다.</p>
+                <p>• 간단한 설명 &amp; 자세한 설명: <code>playstore_assets/playstore_listing.md</code> 내용 복사 후 붙여넣기<br>
+                • 앱 아이콘 (512x512): <code>playstore_assets/app_icon_512.jpg</code> 업로드<br>
+                • 그래픽 이미지 (1024x500): <code>playstore_assets/feature_graphic_1024x500.jpg</code> 업로드<br>
+                • 휴대전화 스크린샷: <code>playstore_assets/screenshots/</code> 내 이미지 업로드</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <h3>개인정보처리방침 (Privacy Policy) 등록</h3>
+                <p>좌측 메뉴 <strong>[정책 및 프로그램] &gt; [앱 콘텐츠] &gt; [개인정보처리방침]</strong>으로 이동합니다.</p>
+                <p>준비된 <code>playstore_assets/privacy_policy.html</code>을 본인의 웹페이지(GitHub Pages, 노션, 블로그 등)에 올린 뒤 해당 URL 링크를 입력합니다.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <h3>데이터 보안 (Data Safety) 설문 완료</h3>
+                <p><strong>[앱 콘텐츠] &gt; [데이터 보안]</strong> 설문에서 <code>playstore_assets/data_safety_declaration.md</code>에 적힌 대로 모두 <strong>[아니요(데이터를 수집하지 않음)]</strong>을 체크합니다.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+                <h3>앱 번들(AAB) 업로드 및 검토 제출</h3>
+                <p>GitHub Actions 클라우드 빌드로 생성된 <code>app-release.aab</code> 파일을 <strong>[프로덕션] &gt; [새 버전 만들기]</strong>에 드래그 앤 드롭한 뒤 <strong>[버전 검토 및 출시]</strong>를 누르면 끝납니다!</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
