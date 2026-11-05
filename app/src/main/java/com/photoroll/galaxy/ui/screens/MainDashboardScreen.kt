@@ -123,6 +123,36 @@ fun MainDashboardScreen(
                 }
             }
 
+            // 배터리 절전 예외 가이드 배너 (삼성 One UI 최적화)
+            if (!com.photoroll.galaxy.util.BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context)) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "정시 자동 교체를 위해 배터리 절전을 해제하세요",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { com.photoroll.galaxy.util.BatteryOptimizationHelper.openBatteryOptimizationSettings(context) }
+                        ) {
+                            Text("설정", fontWeight = FontWeight.Bold, color = SamsungBlue, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // 2. 실시간 폰 목업 프리뷰 (Galaxy Screen Mockup)

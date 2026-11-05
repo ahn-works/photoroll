@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoRoll Galaxy - 인터랙티브 웹 시뮬레이터</title>
+    <style>
+        :root {
+            --samsung-blue: #0381FE;
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            min-height: 100vh;
+            padding: 24px;
+            gap: 32px;
+            align-items: center;
+            justify-content: center;
+        }
+        .controls-panel {
+            width: 440px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        h2 { color: #fff; font-size: 20px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        p.sub { font-size: 13px; color: #8b949e; margin-bottom: 20px; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; margin-bottom: 10px; }
+        .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            color: #c9d1d9;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chip:hover { border-color: var(--samsung-blue); color: #fff; }
+        .chip.active { background: var(--samsung-blue); border-color: var(--samsung-blue); color: #fff; font-weight: 600; }
+        
+        .slider-box { display: flex; align-items: center; gap: 12px; }
+        .slider-box input { flex: 1; accent-color: var(--samsung-blue); }
+        .slider-val { min-width: 40px; font-size: 13px; font-weight: bold; color: var(--samsung-blue); }
+
+        .btn-action {
+            width: 100%;
+            padding: 12px;
+            background: var(--samsung-blue);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .btn-action:hover { background: #006dd9; }
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            margin-top: 8px;
+        }
+        .btn-secondary:hover { background: #30363d; }
+
+        /* 갤럭시 스마트폰 목업 */
+        .phone-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .phone-frame {
+            width: 320px;
+            height: 680px;
+            background: #000;
+            border-radius: 46px;
+            padding: 12px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8), inset 0 0 4px 2px #444;
+            position: relative;
+            user-select: none;
+        }
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 36px;
+            position: relative;
+            overflow: hidden;
+            background-color: #000;
+            cursor: pointer;
+        }
+        .wallpaper-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .dim-layer {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .screen-off-overlay {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+        .screen-off-overlay.off { opacity: 1; pointer-events: all; }
+
+        /* One UI 시스템 UI 레이어 */
+        .system-ui {
+            position: absolute;
+            inset: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #fff;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 0 8px;
+        }
+        .clock-widget {
+            margin-top: 36px;
+            text-align: center;
+        }
+        .clock-time { font-size: 48px; font-weight: 200; line-height: 1; letter-spacing: -1px; }
+        .clock-date { font-size: 13px; font-weight: 400; opacity: 0.9; margin-top: 4px; }
+        
+        .dock-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+        .app-icon-sim {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(8px);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .hint-badge {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 좌측 컨트롤 패널 -->
+    <div class="controls-panel">
+        <h2>📱 PhotoRoll Galaxy 시뮬레이터</h2>
+        <p class="sub">회사 PC 브라우저에서 배경화면 자동 교체 동작을 즉시 체험해 보세요.</p>
+
+        <div class="section">
+            <div class="section-title">스마트폰 전원 및 제스처 테스트</div>
+            <button class="btn-action" onclick="toggleScreenPower()">⚡ 전원 켜기 / 끄기 (화면 켤 때 변경 테스트)</button>
+            <button class="btn-action btn-secondary" onclick="triggerNextPhoto()">👆 빈 공간 더블 탭 시뮬레이션 (다음 사진)</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">순환 규칙 (알고리즘)</div>
+            <div class="chip-group">
+                <div class="chip active" onclick="setRule('random', this)">🔀 비복원 셔플</div>
+                <div class="chip" onclick="setRule('sequential', this)">🔢 순서대로</div>
+                <div class="chip" onclick="setRule('favorite', this)">❤️ 즐겨찾기 3배 가중치</div>
+                <div class="chip" onclick="setRule('daynight', this)">🌓 낮/밤 감성 모드</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">적용 대상 스코프</div>
+            <div class="chip-group">
+                <div class="chip active" onclick="setTarget('both', this)">홈 & 잠금 동시 적용</div>
+                <div class="chip" onclick="setTarget('home', this)">홈 화면만</div>
+                <div class="chip" onclick="setTarget('lock', this)">잠금화면만</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">아이콘 가독성 딤(Dim) 필터</div>
+            <div class="slider-box">
+                <input type="range" min="0" max="50" value="10" oninput="updateDim(this.value)">
+                <span class="slider-val" id="dimVal">10%</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">현재 덱 상태</div>
+            <p style="font-size: 13px; color: #8b949e; line-height: 1.5;">
+                • 등록된 사진: <strong>6장</strong> (풍경, 반려동물, 야경 등)<br>
+                • 현재 사진: <span id="photoTitle" style="color:#58a6ff; font-weight:bold;">1. 에메랄드 해변 (Day)</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- 우측 갤럭시 폰 목업 -->
+    <div class="phone-wrapper">
+        <div class="phone-frame">
+            <div class="phone-screen" id="phoneScreen" ondblclick="triggerNextPhoto()">
+                <!-- 배경화면 이미지 -->
+                <img id="bgImage" class="wallpaper-img" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&q=80" alt="Wallpaper">
+                <!-- 딤 오버레이 -->
+                <div class="dim-layer" id="dimLayer" style="opacity: 0.1;"></div>
+                <!-- 화면 꺼짐 오버레이 -->
+                <div class="screen-off-overlay" id="screenOffOverlay"></div>
+
+                <!-- One UI 시스템 UI -->
+                <div class="system-ui" id="systemUi">
+                    <div class="status-bar">
+                        <span id="statusBarClock">14:45</span>
+                        <span>📶 5G  🔋 98%</span>
+                    </div>
+
+                    <div class="clock-widget">
+                        <div class="clock-time" id="widgetClock">14:45</div>
+                        <div class="clock-date">11월 6일 금요일</div>
+                    </div>
+
+                    <!-- 독 아이콘 -->
+                    <div class="dock-grid">
+                        <div class="app-icon-sim">📞</div>
+                        <div class="app-icon-sim">💬</div>
+                        <div class="app-icon-sim">🌐</div>
+                        <div class="app-icon-sim">📷</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hint-badge">💡 폰 화면을 빠르게 두 번 더블 클릭하면 다음 사진으로 즉시 변경됩니다.</div>
+    </div>
+
+    <script>
+        const photos = [
+            { title: "1. 에메랄드 해변 (Day)", url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&q=80", tag: "day", fav: false },
+            { title: "2. 귀여운 골든리트리버 (❤️즐겨찾기)", url: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=1080&q=80", tag: "day", fav: true },
+            { title: "3. 네온 사이버펑크 야경 (Night)", url: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1080&q=80", tag: "night", fav: false },
+            { title: "4. 아늑한 캠핑 숲속 풍경 (Day)", url: "https://images.unsplash.com/photo-1510312305653-8ed496efae75?w=1080&q=80", tag: "day", fav: false },
+            { title: "5. 비 내리는 도쿄 밤거리 (Night / ❤️즐겨찾기)", url: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1080&q=80", tag: "night", fav: true },
+            { title: "6. 감성 핑크빛 노을 바다 (Night)", url: "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1080&q=80", tag: "night", fav: false }
+        ];
+
+        let currentIndex = 0;
+        let currentRule = 'random';
+        let isScreenOn = true;
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('statusBarClock').innerText = `${h}:${m}`;
+            document.getElementById('widgetClock').innerText = `${h}:${m}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function setRule(rule, element) {
+            currentRule = rule;
+            document.querySelectorAll('.chip-group:nth-of-type(1) .chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function setTarget(target, element) {
+            element.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function updateDim(val) {
+            document.getElementById('dimVal').innerText = val + '%';
+            document.getElementById('dimLayer').style.opacity = val / 100;
+        }
+
+        function triggerNextPhoto() {
+            let nextIndex = 0;
+            if (currentRule === 'sequential') {
+                nextIndex = (currentIndex + 1) % photos.length;
+            } else if (currentRule === 'favorite') {
+                const pool = [];
+                photos.forEach((p, idx) => {
+                    const count = p.fav ? 3 : 1;
+                    for (let i = 0; i < count; i++) pool.push(idx);
+                });
+                nextIndex = pool[Math.floor(Math.random() * pool.length)];
+            } else if (currentRule === 'daynight') {
+                const hour = new Date().getHours();
+                const isNight = hour < 6 || hour >= 18;
+                const filtered = photos.filter(p => isNight ? p.tag === 'night' : p.tag === 'day');
+                const chosen = filtered[Math.floor(Math.random() * filtered.length)];
+                nextIndex = photos.indexOf(chosen);
+            } else {
+                // 비복원 셔플 모의
+                do {
+                    nextIndex = Math.floor(Math.random() * photos.length);
+                } while (nextIndex === currentIndex && photos.length > 1);
+            }
+
+            currentIndex = nextIndex;
+            const photo = photos[currentIndex];
+            const img = document.getElementById('bgImage');
+            img.style.opacity = '0';
+            setTimeout(() => {
+                img.src = photo.url;
+                img.style.opacity = '1';
+                document.getElementById('photoTitle').innerText = photo.title;
+            }, 250);
+        }
+
+        function toggleScreenPower() {
+            isScreenOn = !isScreenOn;
+            const overlay = document.getElementById('screenOffOverlay');
+            if (!isScreenOn) {
+                overlay.classList.add('off');
+            } else {
+                overlay.classList.remove('off');
+                // 화면 켤 때 사진 변경 트리거!
+                triggerNextPhoto();
+            }
+        }
+    </script>
+</body>
+</html>

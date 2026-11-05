@@ -283,7 +283,12 @@ class PhotoRollWallpaperService : WallpaperService() {
                         this.inSampleSize = inSampleSize
                         inPreferredConfig = Bitmap.Config.ARGB_8888
                     }
-                    bitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
+                    val rawBitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
+
+                    // 삼성 갤럭시 카메라 Exif 회전각 자동 보정 (사진이 가로로 눕는 현상 100% 방지)
+                    bitmap = if (rawBitmap != null) {
+                        applyExifOrientation(uri, rawBitmap)
+                    } else null
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -292,6 +297,35 @@ class PhotoRollWallpaperService : WallpaperService() {
 
                 handler.post { callback(bitmap) }
             }.start()
+        }
+
+        private fun applyExifOrientation(uri: Uri, source: Bitmap): Bitmap {
+            return try {
+                var degrees = 0f
+                applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                    val exif = androidx.exifinterface.media.ExifInterface(stream)
+                    val orientation = exif.getAttributeInt(
+                        androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                        androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+                    )
+                    degrees = when (orientation) {
+                        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                        androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                        else -> 0f
+                    }
+                }
+                if (degrees != 0f) {
+                    val matrix = Matrix().apply { postRotate(degrees) }
+                    val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+                    source.recycle()
+                    rotated
+                } else {
+                    source
+                }
+            } catch (e: Exception) {
+                source
+            }
         }
 
         private fun recycleBitmaps() {
