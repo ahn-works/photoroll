@@ -101,6 +101,14 @@ class PhotoRollWallpaperService : WallpaperService() {
             }
         }
 
+        override fun onSurfaceDestroyed(holder: android.view.SurfaceHolder?) {
+            super.onSurfaceDestroyed(holder)
+            // 서피스 파괴 시 즉시 애니메이션 중단 및 메모리 버퍼 해제
+            handler.removeCallbacksAndMessages(null)
+            isTransitioning = false
+            recycleBitmaps()
+        }
+
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
             if (visible) {

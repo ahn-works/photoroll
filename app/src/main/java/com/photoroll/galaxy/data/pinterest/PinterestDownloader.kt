@@ -74,24 +74,37 @@ object PinterestDownloader {
     }
 
     private fun resolveDirectImageUrl(pinUrl: String): String? {
-        var connection = URL(pinUrl).openConnection() as HttpURLConnection
-        connection.instanceFollowRedirects = true
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:109.0) Gecko/109.0 Firefox/109.0")
-        connection.connect()
+        var currentUrl = pinUrl
+        var hops = 0
+        var htmlContent = ""
 
-        val responseCode = connection.responseCode
-        if (responseCode in 300..399) {
-            val redirectedUrl = connection.getHeaderField("Location")
-            connection = URL(redirectedUrl).openConnection() as HttpURLConnection
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:109.0)")
+        // 최대 5단계 리다이렉트 추적 (pin.it 단축 URL 대응)
+        while (hops < 5) {
+            val connection = URL(currentUrl).openConnection() as HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Galaxy S24) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36")
             connection.connect()
+
+            val status = connection.responseCode
+            if (status in 300..399) {
+                val newUrl = connection.getHeaderField("Location") ?: break
+                currentUrl = if (newUrl.startsWith("http")) newUrl else URL(URL(currentUrl), newUrl).toString()
+                hops++
+            } else if (status in 200..299) {
+                htmlContent = connection.inputStream.bufferedReader().use { it.readText() }
+                break
+            } else {
+                break
+            }
         }
 
-        val html = connection.inputStream.bufferedReader().use { it.readText() }
+        if (htmlContent.isEmpty()) return null
 
         // og:image 태그 추출 (<meta property="og:image" content="...">)
-        val ogImageRegex = "<meta\\s+property=\"og:image\"\\s+content=\"([^\"]+)\"".toRegex()
-        val match = ogImageRegex.find(html)
+        val ogImageRegex = "<meta\\s+property=[\"']og:image[\"']\\s+content=[\"']([^\"']+)[\"']".toRegex()
+        val match = ogImageRegex.find(htmlContent)
         var imageUrl = match?.groups?.get(1)?.value
 
         // 핀터레스트 원본 고화질 교체 (236x -> originals 또는 736x)
