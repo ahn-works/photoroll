@@ -71,9 +71,19 @@ PhotoRoll은 사용자의 사진이나 개인정보를 외부 서버로 절대 �
 
 ---
 
-## 3. 스토어 그래픽 자산 등록 위치
+## 3. 스토어 그래픽 및 정책 링크 등록 정보
 
-* **앱 아이콘 (512x512 PNG)**: `playstore_assets/app_icon_512.jpg` (또는 PNG)
-* **그래픽 이미지 (1024x500 PNG)**: `playstore_assets/feature_graphic_1024x500.jpg`
+* **공식 웹사이트 및 라이브 시뮬레이터**:
+  ```
+  https://ahn-works.github.io/photoroll/
+  ```
+* **구글 플레이 필수 개인정보처리방침 URL (Privacy Policy)**:
+  ```
+  https://ahn-works.github.io/photoroll/privacy.html
+  ```
+* **앱 아이콘 (512x512 PNG)**: `playstore_assets/app_icon_512.png`
+* **그래픽 이미지 (1024x500 PNG)**: `playstore_assets/feature_graphic_1024x500.png`
+* **휴대전화 스크린샷 (1080x1920 PNG)**: `playstore_assets/screenshots/` 내 5종 이미지
 * **카테고리**: 맞춤설정 (Personalization)
 * **콘텐츠 등급**: 전체이용가 (PEGI 3 / Everyone)
+* **개발자 문의 이메일**: `dreamtech320@gmail.com`
