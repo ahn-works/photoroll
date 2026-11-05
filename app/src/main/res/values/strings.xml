@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">PhotoRoll</string>
+    <string name="wallpaper_service_label">PhotoRoll 다이내믹 배경화면</string>
+    <string name="wallpaper_service_desc">갤럭시 홈 화면 및 잠금화면을 위한 다이내믹 사진 로테이션 라이브 배경화면</string>
+</resources>
