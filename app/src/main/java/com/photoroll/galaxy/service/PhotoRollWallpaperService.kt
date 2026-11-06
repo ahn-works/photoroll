@@ -289,8 +289,9 @@ class PhotoRollWallpaperService : WallpaperService() {
                     bitmap = if (rawBitmap != null) {
                         applyExifOrientation(uri, rawBitmap)
                     } else null
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (t: Throwable) {
+                    t.printStackTrace()
+                    System.gc()
                 } finally {
                     try { stream?.close() } catch (ignored: Exception) {}
                 }

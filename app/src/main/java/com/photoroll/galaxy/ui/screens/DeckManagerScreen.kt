@@ -1,7 +1,7 @@
 package com.photoroll.galaxy.ui.screens
 
-import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,11 +26,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.photoroll.galaxy.data.model.PhotoItem
 import com.photoroll.galaxy.data.repository.WallpaperRepository
 import com.photoroll.galaxy.ui.theme.AccentPink
 import com.photoroll.galaxy.ui.theme.SamsungBlue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,17 +44,36 @@ fun DeckManagerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var photos by remember { mutableStateOf(repository.getPhotos()) }
+    var isImporting by remember { mutableStateOf(false) }
+    var importProgress by remember { mutableStateOf("") }
 
-    // 안드로이드 최신 Photo Picker 런처 (권한 요청 팝업 없이 갤러리 다중 선택)
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 100)
-    ) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            val count = repository.importAndSavePhotosFromUris(uris)
-            photos = repository.getPhotos()
-            android.widget.Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", android.widget.Toast.LENGTH_SHORT).show()
+    fun processUris(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        isImporting = true
+        coroutineScope.launch(Dispatchers.IO) {
+            val count = repository.importAndSavePhotosFromUris(uris) { curr, tot ->
+                importProgress = "$curr / $tot"
+            }
+            withContext(Dispatchers.Main) {
+                photos = repository.getPhotos()
+                isImporting = false
+                Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+            }
         }
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris: List<Uri> ->
+        processUris(uris)
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        processUris(uris)
     }
 
     Scaffold(
@@ -62,6 +86,9 @@ fun DeckManagerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { filePickerLauncher.launch("image/*") }) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = "파일에서 추가", tint = SamsungBlue)
+                    }
                     IconButton(onClick = {
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -88,51 +115,76 @@ fun DeckManagerScreen(
             }
         }
     ) { padding ->
-        if (photos.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.PhotoLibrary,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("등록된 사진이 없습니다", color = Color.Gray, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("우측 하단 버튼을 눌러 갤러리에서 사진을 추가하세요", color = Color.LightGray, fontSize = 13.sp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (photos.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("등록된 사진이 없습니다", color = Color.Gray, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("우측 하단 버튼을 눌러 갤러리에서 사진을 추가하세요", color = Color.LightGray, fontSize = 13.sp)
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 8.dp,
+                        bottom = 80.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(photos, key = { it.id }) { photo ->
+                        PhotoGridCard(
+                            photo = photo,
+                            onToggleFavorite = {
+                                repository.toggleFavorite(photo.id)
+                                photos = repository.getPhotos()
+                            },
+                            onDelete = {
+                                repository.removePhoto(photo.id)
+                                photos = repository.getPhotos()
+                            }
+                        )
+                    }
                 }
             }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(
-                    start = 12.dp,
-                    end = 12.dp,
-                    top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 80.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(photos, key = { it.id }) { photo ->
-                    PhotoGridCard(
-                        photo = photo,
-                        onToggleFavorite = {
-                            repository.toggleFavorite(photo.id)
-                            photos = repository.getPhotos()
-                        },
-                        onDelete = {
-                            repository.removePhoto(photo.id)
-                            photos = repository.getPhotos()
+
+            if (isImporting) {
+                Dialog(onDismissRequest = {}) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = SamsungBlue)
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Text("사진 최적화 등록 중...", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(if (importProgress.isNotBlank()) importProgress else "잠시만 기다려 주세요", fontSize = 13.sp, color = Color.Gray)
                         }
-                    )
+                    }
                 }
             }
         }
@@ -152,7 +204,11 @@ private fun PhotoGridCard(
             .background(Color.DarkGray)
     ) {
         AsyncImage(
-            model = photo.uriString,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(photo.uriString)
+                .size(240, 320)
+                .crossfade(true)
+                .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -165,7 +221,7 @@ private fun PhotoGridCard(
                 .padding(6.dp)
                 .size(26.dp)
                 .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.65f))
                 .clickable { onDelete() },
             contentAlignment = Alignment.Center
         ) {
@@ -179,7 +235,7 @@ private fun PhotoGridCard(
                 .padding(6.dp)
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.65f))
                 .clickable { onToggleFavorite() },
             contentAlignment = Alignment.Center
         ) {

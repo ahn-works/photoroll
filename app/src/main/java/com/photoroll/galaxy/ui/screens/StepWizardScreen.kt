@@ -26,20 +26,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.photoroll.galaxy.data.model.*
 import com.photoroll.galaxy.data.repository.WallpaperRepository
 import com.photoroll.galaxy.scheduler.WallpaperScheduleReceiver
 import com.photoroll.galaxy.service.PhotoRollWallpaperService
 import com.photoroll.galaxy.ui.theme.AccentPink
 import com.photoroll.galaxy.ui.theme.SamsungBlue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class WizardStep {
     STEP_PHOTOS,    // 1단계: 사진 등록
@@ -56,19 +60,40 @@ fun StepWizardScreen(
     onOpenClassicDashboard: () -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var currentStep by remember { mutableStateOf(WizardStep.STEP_PHOTOS) }
     var settings by remember { mutableStateOf(repository.getSettings()) }
     var photos by remember { mutableStateOf(repository.getPhotos()) }
+    var isImporting by remember { mutableStateOf(false) }
+    var importProgress by remember { mutableStateOf("") }
 
-    // 안드로이드 Photo Picker
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 100)
-    ) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            val count = repository.importAndSavePhotosFromUris(uris)
-            photos = repository.getPhotos()
-            Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+    fun processUris(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        isImporting = true
+        coroutineScope.launch(Dispatchers.IO) {
+            val count = repository.importAndSavePhotosFromUris(uris) { curr, tot ->
+                importProgress = "$curr / $tot"
+            }
+            withContext(Dispatchers.Main) {
+                photos = repository.getPhotos()
+                isImporting = false
+                Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+            }
         }
+    }
+
+    // 포토 피커 런처 (Google Photo Picker)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris: List<Uri> ->
+        processUris(uris)
+    }
+
+    // 파일/갤러리 앨범 탐색기 런처 (GetMultipleContents 폴백)
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        processUris(uris)
     }
 
     fun updateSettings(newSettings: AppSettings) {
@@ -146,6 +171,9 @@ fun StepWizardScreen(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
                             },
+                            onPickFiles = {
+                                filePickerLauncher.launch("image/*")
+                            },
                             onDeletePhoto = { id ->
                                 repository.removePhoto(id)
                                 photos = repository.getPhotos()
@@ -200,6 +228,36 @@ fun StepWizardScreen(
                     }
                 }
             }
+
+            // 사진 임포트 진행 중 다이얼로그
+            if (isImporting) {
+                Dialog(onDismissRequest = {}) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = SamsungBlue)
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Text(
+                                "사진 최적화 등록 중...",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                if (importProgress.isNotBlank()) importProgress else "잠시만 기다려 주세요",
+                                fontSize = 13.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -211,6 +269,7 @@ fun StepWizardScreen(
 private fun StepPhotosView(
     photos: List<PhotoItem>,
     onPickPhotos: () -> Unit,
+    onPickFiles: () -> Unit,
     onDeletePhoto: (String) -> Unit,
     onToggleFav: (String) -> Unit,
     onNext: () -> Unit
@@ -235,40 +294,87 @@ private fun StepPhotosView(
                 color = Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // 큰 사진 추가 카드 버튼
+            // 1. 큰 사진 추가 카드 버튼 (포토 피커)
             Card(
                 onClick = onPickPhotos,
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                colors = CardDefaults.cardColors(containerColor = SamsungBlue.copy(alpha = 0.12f)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, SamsungBlue),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp)
+                    .height(96.dp)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.AddPhotoAlternate,
                             contentDescription = null,
                             tint = SamsungBlue,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(32.dp)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "갤러리에서 사진 추가하기 (+)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = SamsungBlue
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "갤러리에서 사진 추가하기 (추천)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = SamsungBlue
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "터치하여 원하는 사진들을 선택하세요",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. 다른 앨범 또는 파일 탐색기 선택 버튼
+            OutlinedButton(
+                onClick = onPickFiles,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+            ) {
+                Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("다른 앨범 또는 파일에서 선택", fontSize = 13.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 💡 여러 장 선택 꿀팁 안내 카드
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("💡", fontSize = 15.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "여러 장을 고를 땐 첫 번째 사진을 1초간 꾹 누르면 다중 선택 체크박스가 뜹니다!",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
 
             // 등록된 사진 썸네일 캐러셀
             if (photos.isNotEmpty()) {
@@ -291,7 +397,11 @@ private fun StepPhotosView(
                                 .background(Color.DarkGray)
                         ) {
                             AsyncImage(
-                                model = photo.uriString,
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(photo.uriString)
+                                    .size(240, 320)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
@@ -301,22 +411,22 @@ private fun StepPhotosView(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .padding(4.dp)
-                                    .size(20.dp)
+                                    .size(22.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .background(Color.Black.copy(alpha = 0.65f))
                                     .clickable { onDeletePhoto(photo.id) },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
                             }
                             // 하트 버튼
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
                                     .padding(4.dp)
-                                    .size(24.dp)
+                                    .size(26.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .background(Color.Black.copy(alpha = 0.65f))
                                     .clickable { onToggleFav(photo.id) },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -324,7 +434,7 @@ private fun StepPhotosView(
                                     if (photo.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                     contentDescription = null,
                                     tint = if (photo.isFavorite) AccentPink else Color.White,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                             }
                         }
@@ -582,38 +692,55 @@ private fun StepCompleteView(
                 color = Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 실시간 폰 목업
             Box(
                 modifier = Modifier
-                    .width(180.dp)
-                    .height(340.dp)
-                    .clip(RoundedCornerShape(32.dp))
-                    .border(3.dp, SamsungBlue, RoundedCornerShape(32.dp))
+                    .width(170.dp)
+                    .height(310.dp)
+                    .clip(RoundedCornerShape(30.dp))
+                    .border(3.dp, SamsungBlue, RoundedCornerShape(30.dp))
                     .background(Color.Black)
             ) {
                 if (currentPhoto != null) {
                     AsyncImage(
-                        model = currentPhoto.uriString,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(currentPhoto.uriString)
+                            .size(360, 640)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
-                // 가상 One UI 오버레이
+                // 스마트폰 오버레이 시계 UI
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(14.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        Text("14:45", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text("11월 6일 금요일", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "14:45",
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Light
+                        )
+                        Text(
+                            "11월 6일 금요일",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 11.sp
+                        )
                     }
 
+                    // 하단 독 아이콘 시뮬레이션
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -621,7 +748,7 @@ private fun StepCompleteView(
                         repeat(4) {
                             Box(
                                 modifier = Modifier
-                                    .size(26.dp)
+                                    .size(24.dp)
                                     .clip(CircleShape)
                                     .background(Color.White.copy(alpha = 0.35f))
                             )
@@ -632,11 +759,36 @@ private fun StepCompleteView(
         }
 
         Column(modifier = Modifier.fillMaxWidth()) {
+            // 적용 안내 카드
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        "📱 배경화면 적용 안내",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = SamsungBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "아래 버튼을 누르면 갤럭시 시스템 설정창이 열립니다. [홈 화면 및 잠금화면 설정]을 누르시면 화면을 켤 때마다 사진들이 자동으로 교체됩니다!",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
             Button(
                 onClick = onApplyWallpaper,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
+                    .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SamsungBlue)
             ) {
@@ -650,7 +802,7 @@ private fun StepCompleteView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(
                 onClick = onRestart,
