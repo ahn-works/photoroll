@@ -18,6 +18,15 @@ import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+// 🫧 버블 팝 인터랙션 파티클 모델 (Top-level)
+internal data class WallpaperBubble(
+    val x: Float,
+    val y: Float,
+    var radius: Float = 15f,
+    var alpha: Int = 230,
+    val color: Int = Color.CYAN
+)
+
 class PhotoRollWallpaperService : WallpaperService() {
 
     override fun onCreateEngine(): Engine {
@@ -58,8 +67,7 @@ class PhotoRollWallpaperService : WallpaperService() {
         private var surfaceHeight = 2400
 
         // 🫧 버블 팝 인터랙션 파티클
-        private data class Bubble(val x: Float, val y: Float, var radius: Float = 15f, var alpha: Int = 230, val color: Int = Color.CYAN)
-        private val activeBubbles = mutableListOf<Bubble>()
+        private val activeBubbles = mutableListOf<WallpaperBubble>()
         private var isBubbleLoopRunning = false
 
         // 🥠 포춘 쿠키 미니게임 상태
@@ -182,7 +190,7 @@ class PhotoRollWallpaperService : WallpaperService() {
                 // 2. 버블 팝 힐링 인터랙션 (화면 빈 공간 터치 시 방울 생성)
                 if (settings.enableBubblePop) {
                     val colors = listOf(Color.CYAN, Color.MAGENTA, Color.YELLOW, Color.WHITE)
-                    activeBubbles.add(Bubble(tx, ty, radius = 15f, alpha = 230, color = colors.random()))
+                    activeBubbles.add(WallpaperBubble(tx, ty, radius = 15f, alpha = 230, color = colors.random()))
                     if (!isBubbleLoopRunning) {
                         startBubbleAnimationLoop()
                     }
