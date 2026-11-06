@@ -19,6 +19,7 @@ import com.photoroll.galaxy.ui.screens.DeckManagerScreen
 import com.photoroll.galaxy.ui.screens.MainDashboardScreen
 import com.photoroll.galaxy.ui.screens.PinterestImportDialog
 import com.photoroll.galaxy.ui.screens.ScheduleSettingDialog
+import com.photoroll.galaxy.ui.screens.StepWizardScreen
 import com.photoroll.galaxy.ui.theme.PhotoRollTheme
 import kotlinx.coroutines.launch
 
@@ -38,17 +39,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var currentScreen by remember { mutableStateOf<Screen>(Screen.Dashboard) }
+                    var currentScreen by remember { mutableStateOf<Screen>(Screen.Wizard) }
                     var showScheduleDialog by remember { mutableStateOf(false) }
                     var showPinterestDialog by remember { mutableStateOf(false) }
 
                     when (currentScreen) {
+                        is Screen.Wizard -> {
+                            StepWizardScreen(
+                                repository = repository,
+                                onOpenClassicDashboard = { currentScreen = Screen.Dashboard }
+                            )
+                        }
                         is Screen.Dashboard -> {
                             MainDashboardScreen(
                                 repository = repository,
                                 onNavigateToDeck = { currentScreen = Screen.DeckManager },
                                 onOpenScheduleDialog = { showScheduleDialog = true },
-                                onOpenPinterestDialog = { showPinterestDialog = true }
+                                onOpenPinterestDialog = { showPinterestDialog = true },
+                                onOpenWizard = { currentScreen = Screen.Wizard }
                             )
                         }
                         is Screen.DeckManager -> {
@@ -144,6 +152,7 @@ class MainActivity : ComponentActivity() {
     }
 
     sealed class Screen {
+        object Wizard : Screen()
         object Dashboard : Screen()
         object DeckManager : Screen()
     }

@@ -38,7 +38,8 @@ fun MainDashboardScreen(
     repository: WallpaperRepository,
     onNavigateToDeck: () -> Unit,
     onOpenScheduleDialog: () -> Unit,
-    onOpenPinterestDialog: () -> Unit
+    onOpenPinterestDialog: () -> Unit,
+    onOpenWizard: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var settings by remember { mutableStateOf(repository.getSettings()) }
@@ -73,6 +74,9 @@ fun MainDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenWizard) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = "단계별 가이드 모드", tint = SamsungBlue)
+                    }
                     IconButton(onClick = onOpenPinterestDialog) {
                         Icon(Icons.Default.Share, contentDescription = "핀터레스트 연동", tint = SamsungBlue)
                     }

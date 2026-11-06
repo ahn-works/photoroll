@@ -263,7 +263,7 @@ class PhotoRollWallpaperService : WallpaperService() {
                 var bitmap: Bitmap? = null
                 var stream: InputStream? = null
                 try {
-                    stream = applicationContext.contentResolver.openInputStream(uri)
+                    stream = openStreamSafely(uri)
                     // 해상도에 맞춘 샘플링 디코딩으로 메모리 보호
                     val options = BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
@@ -278,7 +278,7 @@ class PhotoRollWallpaperService : WallpaperService() {
                         inSampleSize *= 2
                     }
 
-                    stream = applicationContext.contentResolver.openInputStream(uri)
+                    stream = openStreamSafely(uri)
                     val decodeOptions = BitmapFactory.Options().apply {
                         this.inSampleSize = inSampleSize
                         inPreferredConfig = Bitmap.Config.ARGB_8888
@@ -299,10 +299,22 @@ class PhotoRollWallpaperService : WallpaperService() {
             }.start()
         }
 
+        private fun openStreamSafely(uri: Uri): InputStream? {
+            return try {
+                if (uri.scheme == "file") {
+                    java.io.File(uri.path ?: "").inputStream()
+                } else {
+                    applicationContext.contentResolver.openInputStream(uri)
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
         private fun applyExifOrientation(uri: Uri, source: Bitmap): Bitmap {
             return try {
                 var degrees = 0f
-                applicationContext.contentResolver.openInputStream(uri)?.use { stream ->
+                openStreamSafely(uri)?.use { stream ->
                     val exif = androidx.exifinterface.media.ExifInterface(stream)
                     val orientation = exif.getAttributeInt(
                         androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,

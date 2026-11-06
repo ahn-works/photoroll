@@ -75,6 +75,42 @@ class WallpaperRepository(private val context: Context) {
         savePhotos(current)
     }
 
+    /**
+     * Photo Picker 등 외부 URI의 사진을 앱 내부 전용 저장소로 안전하게 영구 복제
+     * (권한 만료, 프로세스 간 접근 제한, 사진 삭제로 인한 블랙아웃 100% 방지)
+     */
+    fun importAndSavePhotosFromUris(uris: List<Uri>): Int {
+        val targetDir = java.io.File(context.filesDir, "deck_photos").apply { mkdirs() }
+        val newPhotoItems = mutableListOf<PhotoItem>()
+
+        for (uri in uris) {
+            try {
+                val fileName = "photo_${java.util.UUID.randomUUID()}.jpg"
+                val destFile = java.io.File(targetDir, fileName)
+
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    java.io.FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                if (destFile.exists() && destFile.length() > 0) {
+                    val savedUri = Uri.fromFile(destFile).toString()
+                    newPhotoItems.add(PhotoItem(uriString = savedUri))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (newPhotoItems.isNotEmpty()) {
+            val current = getPhotos().toMutableList()
+            current.addAll(newPhotoItems)
+            savePhotos(current)
+        }
+        return newPhotoItems.size
+    }
+
     fun removePhoto(id: String) {
         val current = getPhotos().filterNot { it.id == id }
         savePhotos(current)

@@ -46,16 +46,9 @@ fun DeckManagerScreen(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 100)
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
-            uris.forEach { uri ->
-                try {
-                    context.contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (ignored: Exception) {}
-            }
-            repository.addPhotos(uris.map { it.toString() })
+            val count = repository.importAndSavePhotosFromUris(uris)
             photos = repository.getPhotos()
+            android.widget.Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
