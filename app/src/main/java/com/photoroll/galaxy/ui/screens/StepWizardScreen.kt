@@ -442,9 +442,16 @@ private fun StepPhotosView(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.DarkGray)
                         ) {
+                            val imageModel = remember(photo.uriString) {
+                                if (photo.uriString.startsWith("file://")) {
+                                    java.io.File(android.net.Uri.parse(photo.uriString).path ?: "")
+                                } else {
+                                    android.net.Uri.parse(photo.uriString)
+                                }
+                            }
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(photo.uriString)
+                                    .data(imageModel)
                                     .size(240, 320)
                                     .crossfade(true)
                                     .build(),

@@ -34,6 +34,7 @@ class WallpaperRepository(private val context: Context) {
         private const val KEY_PHOTOS = "key_photo_list"
         private const val KEY_CURRENT_INDEX = "key_current_index"
         private const val KEY_SHUFFLE_HISTORY = "key_shuffle_history"
+        private const val KEY_SEEDED = "key_initial_seeded_v2"
 
         const val ACTION_WALLPAPER_CHANGE = "com.photoroll.galaxy.ACTION_CHANGE_NOW"
 
@@ -62,13 +63,33 @@ class WallpaperRepository(private val context: Context) {
     }
 
     fun getPhotos(): List<PhotoItem> {
-        val json = prefs.getString(KEY_PHOTOS, null) ?: return emptyList()
+        val json = prefs.getString(KEY_PHOTOS, null)
         val type = object : TypeToken<List<PhotoItem>>() {}.type
-        return try {
-            gson.fromJson(json, type) ?: emptyList()
-        } catch (e: Exception) {
+        val list: List<PhotoItem> = if (json != null) {
+            try {
+                gson.fromJson(json, type) ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
             emptyList()
         }
+
+        // 최초 실행 시 또는 사진이 없는 경우, 즉시 체험 가능한 고화질 큐레이션 배경 5장 자동 탑재
+        if (list.isEmpty() && !prefs.getBoolean(KEY_SEEDED, false)) {
+            prefs.edit().putBoolean(KEY_SEEDED, true).apply()
+            loadCuratedSamplePhotos()
+            val newJson = prefs.getString(KEY_PHOTOS, null)
+            if (newJson != null) {
+                return try {
+                    gson.fromJson(newJson, type) ?: emptyList()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+        }
+
+        return list
     }
 
     fun savePhotos(photos: List<PhotoItem>) {
@@ -103,14 +124,26 @@ class WallpaperRepository(private val context: Context) {
             val tempFile = File(targetDir, "temp_${UUID.randomUUID()}.tmp")
             val finalFile = File(targetDir, "photo_${UUID.randomUUID()}.jpg")
             try {
-                // 1. 단 1회의 스트림 읽기로 원본 바이트를 로컬 파일에 완전 복제
+                // 1. 단 1회의 스트림 읽기로 원본 바이트를 로컬 파일에 완전 복제 (openInputStream + pfd fallback)
                 var copySuccess = false
                 try {
                     val stream: InputStream? = if (uri.scheme == "file") {
                         File(uri.path ?: "").inputStream()
                     } else {
-                        context.contentResolver.openInputStream(uri)
+                        try {
+                            context.contentResolver.takePersistableUriPermission(
+                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                        } catch (ignored: Exception) {}
+
+                        try {
+                            context.contentResolver.openInputStream(uri)
+                        } catch (e: Exception) {
+                            val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                            if (pfd != null) java.io.FileInputStream(pfd.fileDescriptor) else null
+                        }
                     }
+
                     stream?.use { input ->
                         FileOutputStream(tempFile).use { output ->
                             input.copyTo(output)
@@ -133,9 +166,14 @@ class WallpaperRepository(private val context: Context) {
                     tempFile.delete()
                     finalFile
                 } else {
-                    // 비트맵 최적화 실패 시(극단적 저사양 메모리 등) 원본 tempFile을 최종 파일로 이동
-                    tempFile.renameTo(finalFile)
-                    finalFile
+                    // 최적화 실패(메모리 부족/특수 포맷 등) 시 원본 tempFile 복사 보존 (실패 확률 0%)
+                    try {
+                        tempFile.copyTo(finalFile, overwrite = true)
+                        tempFile.delete()
+                    } catch (e: Exception) {
+                        tempFile.renameTo(finalFile)
+                    }
+                    if (finalFile.exists() && finalFile.length() > 0) finalFile else tempFile
                 }
 
                 if (savedFile.exists() && savedFile.length() > 0) {
