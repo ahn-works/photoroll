@@ -249,25 +249,58 @@
                 <span>PhotoRoll Galaxy</span>
             </a>
             <div class="nav-links">
+                <a href="#download" class="btn-nav" style="background:#0381FE; color:#fff !important; font-weight:700;">📱 APK 다운로드</a>
                 <a href="#features">주요 기능</a>
                 <a href="#simulator">웹 시뮬레이터</a>
                 <a href="#screenshots">스크린샷</a>
                 <a href="privacy.html">개인정보처리방침</a>
-                <a href="guide.html" class="btn-nav">출시 가이드</a>
+                <a href="guide.html">출시 가이드</a>
             </div>
         </div>
     </header>
 
     <section class="hero">
-        <div class="badge">🚀 Google Play 공식 출시 번들 v1.0.0</div>
+        <div class="badge">🚀 Google Play 공식 출시 번들 v1.0.0 (최신 빌드)</div>
         <h1>홈 화면에서도 폰 켤 때마다<br>자동으로 바뀌는 다이내믹 포토롤</h1>
         <p>기존 갤럭시 잠금화면 멀티팩의 한계를 넘어, 홈 화면과 잠금화면에 내 최애 사진들을 원하는 주기(켤 때마다 / 1시간마다 / 주말 분리)로 자유롭게 자동 순환하세요.</p>
-        <div style="margin-bottom: 30px;">
-            <a href="app-release.apk" download style="display:inline-block; background:#0381FE; color:#fff; font-size:18px; font-weight:700; padding:16px 36px; border-radius:30px; text-decoration:none; box-shadow:0 10px 25px rgba(3,129,254,0.4); transition:all 0.2s;">
-                📱 갤럭시 APK 바로 다운로드 (설치 파일)
-            </a>
-            <div style="margin-top:10px; font-size:13px; color:#8b949e;">갤럭시 스마트폰 브라우저에서 위 버튼을 누르면 즉시 다운로드 및 설치됩니다.</div>
+        
+        <!-- Download Hub Card -->
+        <div id="download" style="max-width: 680px; margin: 0 auto 40px; background: rgba(22, 27, 34, 0.95); border: 1px solid #30363d; border-radius: 24px; padding: 32px 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);">
+            <div style="display:inline-block; background:rgba(63, 185, 80, 0.15); color:#3fb950; border:1px solid rgba(63, 185, 80, 0.3); padding:4px 14px; border-radius:12px; font-size:13px; font-weight:700; margin-bottom:16px;">
+                ✨ 최신 업데이트 완료 (v1.0.0) • 정식 앱 아이콘 &amp; 5단계 위저드 탑재
+            </div>
+            <h3 style="font-size: 22px; color: #fff; margin-bottom: 12px; font-weight: 700;">갤럭시 전용 APK 다이렉트 다운로드</h3>
+            <p style="font-size: 14px; color: #8b949e; margin-bottom: 24px;">카톡 전송 차단 없이 갤럭시 스마트폰에서 링크 클릭 한 번으로 바로 다운로드하여 설치하실 수 있습니다.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center;">
+                <a href="https://github.com/ahn-works/photoroll/releases/download/v1.0.0/app-release.apk" target="_blank" rel="noopener" style="width: 100%; max-width: 480px; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #0381FE 0%, #0056b3 100%); color: #fff; font-size: 17px; font-weight: 700; padding: 18px 28px; border-radius: 16px; text-decoration: none; box-shadow: 0 8px 24px rgba(3, 129, 254, 0.45); transition: transform 0.2s, box-shadow 0.2s;">
+                    <span style="font-size: 22px;">📱</span>
+                    <span>최신 APK 직접 다운로드 (GitHub Release)</span>
+                </a>
+                
+                <div style="display: flex; gap: 10px; width: 100%; max-width: 480px; flex-wrap: wrap;">
+                    <a href="app-release.apk" download style="flex: 1; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #21262d; border: 1px solid #30363d; color: #f0f6fc; font-size: 14px; font-weight: 600; padding: 12px 18px; border-radius: 12px; text-decoration: none; transition: background 0.2s;">
+                        <span>⚡</span>
+                        <span>웹서버 미러 다운로드</span>
+                    </a>
+                    <a href="https://github.com/ahn-works/photoroll/releases/download/v1.0.0/app-release.aab" target="_blank" rel="noopener" style="flex: 1; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #21262d; border: 1px solid #30363d; color: #8ab4f8; font-size: 14px; font-weight: 600; padding: 12px 18px; border-radius: 12px; text-decoration: none; transition: background 0.2s;">
+                        <span>📦</span>
+                        <span>PlayStore AAB 번들</span>
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 14px 18px; background: rgba(13, 17, 23, 0.8); border-radius: 12px; text-align: left; font-size: 13px; color: #8b949e; line-height: 1.6;">
+                <strong style="color: #58a6ff;">💡 폰 설치 안내:</strong> 다운로드 시 <em>'유해한 파일일 수 있음'</em> 또는 <em>'출처를 알 수 없는 앱'</em> 안내가 뜨면, 플레이스토어 심사 전 자체 배포 패키지이므로 <strong>[무시하고 다운로드]</strong> 및 <strong>[설치 허용]</strong>을 누르시면 정상 설치됩니다.
+            </div>
+
+            <div style="margin-top: 16px; font-size: 13px;">
+                <a href="https://github.com/ahn-works/photoroll/releases/tag/v1.0.0" target="_blank" rel="noopener" style="color: #58a6ff; text-decoration: none; font-weight: 600;">
+                    🐙 GitHub Releases 공식 배포 페이지 및 전체 릴리즈 내역 보기 &rarr;
+                </a>
+            </div>
         </div>
+
         <img src="assets/banner.png" alt="PhotoRoll Galaxy" class="hero-banner">
     </section>
 
