@@ -336,17 +336,27 @@
             <div class="feature-title">배터리 소모 0% 보장</div>
             <div class="feature-desc">정지 이미지 온디맨드 캔버스 렌더링으로 화면이 꺼져 있을 때 CPU 점유율이 0%로 완벽 차단되어 배터리 누수가 없습니다.</div>
         </div>
+        <div class="feature-card">
+            <div class="feature-icon">🥠</div>
+            <div class="feature-title">잠금화면 미니게임 (포춘쿠키 & 버블팝)</div>
+            <div class="feature-desc">앱을 켜지 않고도 잠금화면 구석의 포춘쿠키를 톡 누르면 바삭 깨지며 오늘 운세가 뜨고, 화면을 탭하면 영롱한 비눗방울이 팡팡 터집니다.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📅</div>
+            <div class="feature-title">감성 캔버스 위젯 &amp; D-Day 배지</div>
+            <div class="feature-desc">커플 100일, 수능, 최애 생일 D-Day와 "오늘도 행복하기" 같은 나만의 확언 문구를 사진 위에 세련된 글래스모피즘으로 각인합니다.</div>
+        </div>
     </section>
 
     <!-- Simulator -->
     <section class="simulator-section" id="simulator">
         <div class="badge">🎮 실시간 체험</div>
-        <h2 style="font-size: 30px; margin-bottom: 10px;">인터랙티브 갤럭시 웹 시뮬레이터</h2>
-        <p style="color: var(--text-sub);">브라우저에서 직접 스마트폰 전원을 켜고 끄며 배경화면 로테이션을 테스트해 보세요.</p>
+        <h2 style="font-size: 30px; margin-bottom: 10px;">인터랙티브 갤럭시 웹 시뮬레이터 v2.0</h2>
+        <p style="color: var(--text-sub);">브라우저에서 직접 스마트폰 전원을 켜고 끄며 배경화면 로테이션, 포춘 쿠키 🥠, 버블 팝 🫧 인터랙션을 테스트해 보세요.</p>
 
         <div class="simulator-box">
             <div class="sim-phone-frame">
-                <div class="sim-screen" id="simScreen" ondblclick="simNext()">
+                <div class="sim-screen" id="simScreen" onclick="simHandleTap(event)" ondblclick="simNext()">
                     <img id="simImg" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&q=80" class="sim-img" alt="Screen">
                     <div class="sim-ui-overlay">
                         <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600;">
@@ -354,9 +364,20 @@
                             <span>📶 5G 🔋 98%</span>
                         </div>
                         <div style="text-align:center;">
+                            <div id="simDDayBadge" style="display:inline-block; background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.3); border-radius:14px; padding:3px 12px; font-size:11px; font-weight:bold; margin-bottom:4px;">우리의 기념일 • D-Day</div>
                             <div class="sim-clock-time" id="simClockBig">14:45</div>
                             <div style="font-size:12px; opacity:0.9;">11월 6일 금요일</div>
                         </div>
+
+                        <!-- Fortune Cookie interactive button -->
+                        <div id="simCookieBtn" onclick="simCrackCookie(event)" style="position:absolute; right:16px; bottom:64px; width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, #f5a623, #d97706); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; box-shadow:0 4px 14px rgba(245,166,35,0.6); pointer-events:auto; z-index:10; transition:transform 0.15s;" title="오늘의 행운 탭하기!">🥠</div>
+
+                        <!-- Fortune Message Card -->
+                        <div id="simFortuneCard" style="display:none; position:absolute; left:16px; right:16px; top:42%; transform:translateY(-50%); background:rgba(18,22,32,0.96); border:1.5px solid #f5a623; border-radius:18px; padding:16px; text-align:center; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.85); z-index:20;">
+                            <div style="font-size:11px; color:#f5a623; font-weight:bold; margin-bottom:6px;">✨ 오늘의 포춘 메시지 ✨</div>
+                            <div id="simFortuneText" style="font-size:13px; font-weight:bold; line-height:1.4;">오늘 당신에게 기분 좋은 행운이 찾아옵니다!</div>
+                        </div>
+
                         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
                             <div style="aspect-ratio:1; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center;">📞</div>
                             <div style="aspect-ratio:1; background:rgba(255,255,255,0.25); border-radius:12px; display:flex; align-items:center; justify-content:center;">💬</div>
@@ -369,11 +390,13 @@
 
             <div class="sim-controls">
                 <h3 style="margin-bottom:12px; font-size:16px;">인터랙션 컨트롤</h3>
+                <button onclick="simCrackCookie(event)" style="width:100%; padding:10px; background:#d97706; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">🥠 행운의 포춘 쿠키 깨기 (운세 뽑기)</button>
                 <button onclick="simTogglePower()" style="width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">⚡ 전원 켜기 / 끄기 (화면 켤 때 변경 테스트)</button>
-                <button onclick="simNext()" style="width:100%; padding:10px; background:#21262d; border:1px solid var(--border-color); color:#fff; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:16px;">👆 빈 공간 더블 탭 시뮬레이션 (다음 사진)</button>
-                <div style="font-size:13px; color:var(--text-sub); line-height:1.5;">
-                    • 현재 사진: <span id="simTitle" style="color:#58a6ff; font-weight:bold;">에메랄드 해변 (Day)</span><br>
-                    • 적용 모드: <span style="color:#3fb950; font-weight:bold;">화면 켤 때마다 자동 변경 (Screen On)</span>
+                <button onclick="simNext()" style="width:100%; padding:10px; background:#21262d; border:1px solid var(--border-color); color:#fff; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:16px;">👆 빈 공간 더블 탭 (다음 사진)</button>
+                <div style="font-size:13px; color:var(--text-sub); line-height:1.6;">
+                    • <strong>인터랙션 꿀팁</strong>: 폰 화면 아무 곳이나 <strong>클릭</strong>하면 영롱한 버블 팝 🫧이 터집니다.<br>
+                    • <strong>포춘 쿠키</strong>: 우측 하단 🥠 아이콘을 누르면 오늘의 운세가 열립니다.<br>
+                    • 현재 사진: <span id="simTitle" style="color:#58a6ff; font-weight:bold;">에메랄드 해변 (Day)</span>
                 </div>
             </div>
         </div>
@@ -421,15 +444,56 @@
             }, 200);
         }
 
-        function simTogglePower() {
-            pOn = !pOn;
+        const fortunes = [
+            "오늘 당신에게 뜻밖의 기분 좋은 행운이 찾아옵니다 ✨",
+            "당신의 미소가 오늘 누군가에게 큰 힘이 됩니다 💖",
+            "잠시 쉬어가도 괜찮아요. 이미 충분히 잘하고 있어요 🍀",
+            "원하는 일들이 하나씩 술술 풀리는 최고의 하루가 될 거예요 🌟",
+            "오늘 마주치는 모든 순간들이 특별한 기적으로 변합니다 🎈",
+            "자신을 믿으세요. 당신은 생각보다 훨씬 더 멋진 사람입니다 ☀️",
+            "기적 같은 일은 늘 가장 평범한 순간에 찾아옵니다 🎁"
+        ];
+
+        function simCrackCookie(e) {
+            if (e) e.stopPropagation();
+            const card = document.getElementById('simFortuneCard');
+            const txt = document.getElementById('simFortuneText');
+            txt.innerText = fortunes[Math.floor(Math.random() * fortunes.length)];
+            card.style.display = 'block';
+            card.style.animation = 'popIn 0.3s ease';
+            setTimeout(() => {
+                card.style.display = 'none';
+            }, 3500);
+        }
+
+        function simHandleTap(e) {
             const screen = document.getElementById('simScreen');
-            if (!pOn) {
-                screen.style.filter = 'brightness(0)';
-            } else {
-                screen.style.filter = 'brightness(1)';
-                simNext();
-            }
+            const rect = screen.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const bubble = document.createElement('div');
+            bubble.style.position = 'absolute';
+            bubble.style.left = (x - 15) + 'px';
+            bubble.style.top = (y - 15) + 'px';
+            bubble.style.width = '30px';
+            bubble.style.height = '30px';
+            bubble.style.borderRadius = '50%';
+            bubble.style.border = '2px solid rgba(88, 166, 255, 0.9)';
+            bubble.style.background = 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(3,129,254,0.1) 70%)';
+            bubble.style.pointerEvents = 'none';
+            bubble.style.zIndex = '30';
+            bubble.style.transition = 'all 0.4s ease-out';
+            screen.appendChild(bubble);
+
+            setTimeout(() => {
+                bubble.style.transform = 'scale(2.2)';
+                bubble.style.opacity = '0';
+            }, 20);
+
+            setTimeout(() => {
+                bubble.remove();
+            }, 450);
         }
     </script>
 </body>

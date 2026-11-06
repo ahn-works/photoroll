@@ -39,6 +39,7 @@ fun MainDashboardScreen(
     onNavigateToDeck: () -> Unit,
     onOpenScheduleDialog: () -> Unit,
     onOpenPinterestDialog: () -> Unit,
+    onOpenWidgetDialog: () -> Unit = {},
     onOpenWizard: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -74,6 +75,9 @@ fun MainDashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenWidgetDialog) {
+                        Icon(Icons.Default.Widgets, contentDescription = "위젯 및 게임 설정", tint = SamsungBlue)
+                    }
                     IconButton(onClick = onOpenWizard) {
                         Icon(Icons.Default.AutoFixHigh, contentDescription = "단계별 가이드 모드", tint = SamsungBlue)
                     }
@@ -298,7 +302,23 @@ fun MainDashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 6. 하단 메뉴 버튼들
+            // 6. 감성 위젯 & 인터랙티브 미니게임 설정 버튼
+            OutlinedButton(
+                onClick = onOpenWidgetDialog,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.Widgets, contentDescription = null, tint = SamsungBlue)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "✨ 위젯 & 미니게임 설정 (D-Day, 포춘쿠키, 버블팝)",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 7. 하단 메뉴 버튼들
             Button(
                 onClick = onNavigateToDeck,
                 modifier = Modifier.fillMaxWidth(),

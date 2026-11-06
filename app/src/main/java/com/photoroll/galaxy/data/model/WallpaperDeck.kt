@@ -81,5 +81,17 @@ data class AppSettings(
     val dailyHour: Int = 8,
     val dailyMinute: Int = 0,
     val enableDoubleTapGesture: Boolean = true,
-    val transitionDurationMs: Long = 400L // 크로스페이드 시간
+    val transitionDurationMs: Long = 400L, // 크로스페이드 시간
+
+    // v2.0 감성 위젯 옵션
+    val enableDDayBadge: Boolean = false,
+    val ddayTitle: String = "우리의 기념일",
+    val ddayTargetDate: String = "2024-11-06",
+    val enableMemoWidget: Boolean = false,
+    val memoText: String = "오늘도 행복한 하루 보내기 ✨",
+    val enableVintageFilter: Boolean = false,
+
+    // v2.0 인터랙티브 미니게임 옵션
+    val enableFortuneCookie: Boolean = true,
+    val enableBubblePop: Boolean = true
 )

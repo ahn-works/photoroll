@@ -20,6 +20,7 @@ import com.photoroll.galaxy.ui.screens.MainDashboardScreen
 import com.photoroll.galaxy.ui.screens.PinterestImportDialog
 import com.photoroll.galaxy.ui.screens.ScheduleSettingDialog
 import com.photoroll.galaxy.ui.screens.StepWizardScreen
+import com.photoroll.galaxy.ui.screens.WidgetSettingsDialog
 import com.photoroll.galaxy.ui.theme.PhotoRollTheme
 import kotlinx.coroutines.launch
 
@@ -42,12 +43,14 @@ class MainActivity : ComponentActivity() {
                     var currentScreen by remember { mutableStateOf<Screen>(Screen.Wizard) }
                     var showScheduleDialog by remember { mutableStateOf(false) }
                     var showPinterestDialog by remember { mutableStateOf(false) }
+                    var showWidgetDialog by remember { mutableStateOf(false) }
 
                     when (currentScreen) {
                         is Screen.Wizard -> {
                             StepWizardScreen(
                                 repository = repository,
-                                onOpenClassicDashboard = { currentScreen = Screen.Dashboard }
+                                onOpenClassicDashboard = { currentScreen = Screen.Dashboard },
+                                onOpenWidgetDialog = { showWidgetDialog = true }
                             )
                         }
                         is Screen.Dashboard -> {
@@ -56,6 +59,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDeck = { currentScreen = Screen.DeckManager },
                                 onOpenScheduleDialog = { showScheduleDialog = true },
                                 onOpenPinterestDialog = { showPinterestDialog = true },
+                                onOpenWidgetDialog = { showWidgetDialog = true },
                                 onOpenWizard = { currentScreen = Screen.Wizard }
                             )
                         }
@@ -65,6 +69,18 @@ class MainActivity : ComponentActivity() {
                                 onBack = { currentScreen = Screen.Dashboard }
                             )
                         }
+                    }
+
+                    if (showWidgetDialog) {
+                        WidgetSettingsDialog(
+                            initialSettings = repository.getSettings(),
+                            onDismiss = { showWidgetDialog = false },
+                            onSave = { updatedSettings ->
+                                repository.saveSettings(updatedSettings)
+                                showWidgetDialog = false
+                                Toast.makeText(this@MainActivity, "위젯 & 미니게임 설정이 적용되었습니다!", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
 
                     if (showScheduleDialog) {

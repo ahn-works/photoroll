@@ -57,7 +57,8 @@ enum class WizardStep {
 @Composable
 fun StepWizardScreen(
     repository: WallpaperRepository,
-    onOpenClassicDashboard: () -> Unit
+    onOpenClassicDashboard: () -> Unit,
+    onOpenWidgetDialog: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -134,6 +135,9 @@ fun StepWizardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenWidgetDialog) {
+                        Icon(Icons.Default.Widgets, contentDescription = "위젯 및 게임 설정", tint = SamsungBlue)
+                    }
                     TextButton(onClick = onOpenClassicDashboard) {
                         Text("전체 메뉴", color = SamsungBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
@@ -220,6 +224,7 @@ fun StepWizardScreen(
                         StepCompleteView(
                             photos = photos,
                             settings = settings,
+                            onOpenWidgetDialog = onOpenWidgetDialog,
                             onApplyWallpaper = {
                                 openSystemWallpaperChooser(context)
                             },
@@ -667,6 +672,7 @@ private fun StepRotationView(
 private fun StepCompleteView(
     photos: List<PhotoItem>,
     settings: AppSettings,
+    onOpenWidgetDialog: () -> Unit = {},
     onApplyWallpaper: () -> Unit,
     onRestart: () -> Unit
 ) {
@@ -782,6 +788,20 @@ private fun StepCompleteView(
                         lineHeight = 16.sp
                     )
                 }
+            }
+
+            // 위젯 & 미니게임 설정 버튼
+            OutlinedButton(
+                onClick = onOpenWidgetDialog,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .padding(bottom = 6.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.Widgets, contentDescription = null, tint = SamsungBlue, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("✨ D-Day / 포춘쿠키 / 버블팝 설정하기", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Button(
