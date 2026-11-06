@@ -52,6 +52,7 @@ fun DeckManagerScreen(
     fun processUris(uris: List<Uri>) {
         if (uris.isEmpty()) return
         isImporting = true
+        importProgress = "1 / ${uris.size}"
         coroutineScope.launch(Dispatchers.IO) {
             val count = repository.importAndSavePhotosFromUris(uris) { curr, tot ->
                 importProgress = "$curr / $tot"
@@ -59,13 +60,17 @@ fun DeckManagerScreen(
             withContext(Dispatchers.Main) {
                 photos = repository.getPhotos()
                 isImporting = false
-                Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                if (count > 0) {
+                    Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "사진 등록에 실패했습니다. 파일 탐색기에서 다시 시도해 주세요.", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia()
+        contract = ActivityResultContracts.PickMultipleVisualMedia(100)
     ) { uris: List<Uri> ->
         processUris(uris)
     }
@@ -86,6 +91,20 @@ fun DeckManagerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        isImporting = true
+                        importProgress = "샘플 생성 중..."
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val count = repository.loadCuratedSamplePhotos()
+                            withContext(Dispatchers.Main) {
+                                photos = repository.getPhotos()
+                                isImporting = false
+                                Toast.makeText(context, "${count}장의 감성 샘플이 추가되었습니다!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = "샘플 사진 채우기", tint = SamsungBlue)
+                    }
                     IconButton(onClick = { filePickerLauncher.launch("image/*") }) {
                         Icon(Icons.Default.FolderOpen, contentDescription = "파일에서 추가", tint = SamsungBlue)
                     }

@@ -22,7 +22,9 @@ import com.photoroll.galaxy.ui.screens.ScheduleSettingDialog
 import com.photoroll.galaxy.ui.screens.StepWizardScreen
 import com.photoroll.galaxy.ui.screens.WidgetSettingsDialog
 import com.photoroll.galaxy.ui.theme.PhotoRollTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -134,15 +136,16 @@ class MainActivity : ComponentActivity() {
             // 1. 이미지 스트림 수신 (갤러리나 다른 앱에서 이미지 공유)
             val imageUri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
             if (imageUri != null) {
-                try {
-                    contentResolver.takePersistableUriPermission(
-                        imageUri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (ignored: Exception) {}
-
-                repository.addPhotos(listOf(imageUri.toString()))
-                Toast.makeText(this, "새 사진이 배경화면 덱에 추가되었습니다!", Toast.LENGTH_LONG).show()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val count = repository.importAndSavePhotosFromUris(listOf(imageUri))
+                    withContext(Dispatchers.Main) {
+                        if (count > 0) {
+                            Toast.makeText(this@MainActivity, "공유받은 사진이 배경화면 덱에 안전하게 추가되었습니다!", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "사진 추가에 실패했습니다. 앱 내에서 다시 시도해 주세요.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
                 return
             }
 

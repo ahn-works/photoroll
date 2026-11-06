@@ -85,9 +85,10 @@ class WallpaperRepository(private val context: Context) {
 
     /**
      * Photo Picker 등 외부 URI의 사진을 앱 내부 전용 저장소로 안전하게 최적화 복제
+     * - 단 1회 스트림 읽기로 원본 바이트를 로컬 파일에 완전 보존 (HEIC/파이프/임시URI 만료 방지)
      * - 갤럭시 초고화질 사진(12MP~200MP) 메모리 OOM 완전 방지 (화면 해상도 1440p에 맞춰 스마트 다운샘플링)
      * - Exif 회전각 자동 정방향 보정 (사진이 돌아가는 현상 방지)
-     * - 고화질 90% JPEG 압축 저장으로 디스크 용량 및 로딩 속도 10배 최적화
+     * - 고화질 92% JPEG 압축 저장으로 디스크 용량 및 로딩 속도 최적화
      */
     fun importAndSavePhotosFromUris(
         uris: List<Uri>,
@@ -99,31 +100,51 @@ class WallpaperRepository(private val context: Context) {
 
         for ((index, uri) in uris.withIndex()) {
             onProgress?.invoke(index + 1, total)
+            val tempFile = File(targetDir, "temp_${UUID.randomUUID()}.tmp")
+            val finalFile = File(targetDir, "photo_${UUID.randomUUID()}.jpg")
             try {
-                val fileName = "photo_${UUID.randomUUID()}.jpg"
-                val destFile = File(targetDir, fileName)
-
-                val optimizedBitmap = decodeOptimizedBitmap(uri, targetW = 1440, targetH = 3120)
-                if (optimizedBitmap != null) {
-                    FileOutputStream(destFile).use { out ->
-                        optimizedBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                // 1. 단 1회의 스트림 읽기로 원본 바이트를 로컬 파일에 완전 복제
+                var copySuccess = false
+                try {
+                    val stream: InputStream? = if (uri.scheme == "file") {
+                        File(uri.path ?: "").inputStream()
+                    } else {
+                        context.contentResolver.openInputStream(uri)
                     }
-                    optimizedBitmap.recycle()
-                } else {
-                    // 폴백: 비트맵 변환 불가 시 스트림 복사
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        FileOutputStream(destFile).use { output ->
+                    stream?.use { input ->
+                        FileOutputStream(tempFile).use { output ->
                             input.copyTo(output)
                         }
                     }
+                    copySuccess = tempFile.exists() && tempFile.length() > 0
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
 
-                if (destFile.exists() && destFile.length() > 0) {
-                    val savedUri = Uri.fromFile(destFile).toString()
+                if (!copySuccess) {
+                    tempFile.delete()
+                    continue
+                }
+
+                // 2. 완벽하게 확보된 로컬 파일에서 해상도 최적화 및 Exif 회전 처리
+                val optimized = optimizeLocalImageFile(tempFile, finalFile, targetW = 1440, targetH = 3120)
+
+                val savedFile = if (optimized && finalFile.exists() && finalFile.length() > 0) {
+                    tempFile.delete()
+                    finalFile
+                } else {
+                    // 비트맵 최적화 실패 시(극단적 저사양 메모리 등) 원본 tempFile을 최종 파일로 이동
+                    tempFile.renameTo(finalFile)
+                    finalFile
+                }
+
+                if (savedFile.exists() && savedFile.length() > 0) {
+                    val savedUri = Uri.fromFile(savedFile).toString()
                     newPhotoItems.add(PhotoItem(uriString = savedUri))
                 }
             } catch (t: Throwable) {
                 t.printStackTrace()
+                tempFile.delete()
             }
         }
 
@@ -135,14 +156,11 @@ class WallpaperRepository(private val context: Context) {
         return newPhotoItems.size
     }
 
-    private fun decodeOptimizedBitmap(uri: Uri, targetW: Int, targetH: Int): Bitmap? {
+    private fun optimizeLocalImageFile(tempFile: File, finalFile: File, targetW: Int, targetH: Int): Boolean {
         return try {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                BitmapFactory.decodeStream(stream, null, options)
-            }
-
-            if (options.outWidth <= 0 || options.outHeight <= 0) return null
+            BitmapFactory.decodeFile(tempFile.absolutePath, options)
+            if (options.outWidth <= 0 || options.outHeight <= 0) return false
 
             var inSampleSize = 1
             while (options.outWidth / (inSampleSize * 2) >= targetW &&
@@ -154,28 +172,24 @@ class WallpaperRepository(private val context: Context) {
                 this.inSampleSize = inSampleSize
                 inPreferredConfig = Bitmap.Config.ARGB_8888
             }
-            val raw = context.contentResolver.openInputStream(uri)?.use { stream ->
-                BitmapFactory.decodeStream(stream, null, decodeOptions)
-            } ?: return null
+            val raw = BitmapFactory.decodeFile(tempFile.absolutePath, decodeOptions) ?: return false
 
             var degrees = 0f
             try {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val exif = ExifInterface(stream)
-                    val orientation = exif.getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION,
-                        ExifInterface.ORIENTATION_NORMAL
-                    )
-                    degrees = when (orientation) {
-                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                        else -> 0f
-                    }
+                val exif = ExifInterface(tempFile.absolutePath)
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+                degrees = when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
                 }
             } catch (ignored: Exception) {}
 
-            if (degrees != 0f) {
+            val finalBitmap = if (degrees != 0f) {
                 val matrix = Matrix().apply { postRotate(degrees) }
                 val rotated = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
                 if (rotated != raw) raw.recycle()
@@ -183,10 +197,81 @@ class WallpaperRepository(private val context: Context) {
             } else {
                 raw
             }
+
+            FileOutputStream(finalFile).use { out ->
+                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            }
+            finalBitmap.recycle()
+            true
         } catch (t: Throwable) {
             t.printStackTrace()
-            null
+            false
         }
+    }
+
+    /**
+     * 테스트 및 즉시 체험용 고화질 큐레이션 감성 사진 5장 즉시 채우기
+     * (갤러리 권한 및 네트워크 연결 없이 로컬에서 즉시 100% 안전 생성)
+     */
+    fun loadCuratedSamplePhotos(): Int {
+        val targetDir = File(context.filesDir, "deck_photos").apply { mkdirs() }
+        val newPhotoItems = mutableListOf<PhotoItem>()
+        val samples = listOf(
+            Triple("일몰의 해변 (Sunset Ocean)", 0xFF1E3A8A.toInt(), 0xFFF97316.toInt()),
+            Triple("신비로운 오로라 (Night Aurora)", 0xFF0F172A.toInt(), 0xFF06B6D4.toInt()),
+            Triple("피치 선셋 (Peach Sunset)", 0xFF831843.toInt(), 0xFFF43F5E.toInt()),
+            Triple("에메랄드 숲 (Emerald Forest)", 0xFF064E3B.toInt(), 0xFF10B981.toInt()),
+            Triple("사이버 네온 (Cyber Neon)", 0xFF3B0764.toInt(), 0xFFEC4899.toInt())
+        )
+
+        for (sample in samples) {
+            val file = File(targetDir, "sample_${UUID.randomUUID()}.jpg")
+            try {
+                val bitmap = Bitmap.createBitmap(1080, 2400, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bitmap)
+                val shader = android.graphics.LinearGradient(
+                    0f, 0f, 0f, 2400f,
+                    sample.second, sample.third,
+                    android.graphics.Shader.TileMode.CLAMP
+                )
+                val paint = android.graphics.Paint().apply { this.shader = shader }
+                canvas.drawRect(0f, 0f, 1080f, 2400f, paint)
+
+                val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 54f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    setShadowLayer(10f, 0f, 4f, 0x88000000.toInt())
+                }
+                canvas.drawText(sample.first, 540f, 1150f, textPaint)
+
+                val subPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.argb(210, 255, 255, 255)
+                    textSize = 34f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+                canvas.drawText("PhotoRoll Curated Wallpapers", 540f, 1230f, subPaint)
+
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                }
+                bitmap.recycle()
+
+                if (file.exists() && file.length() > 0) {
+                    newPhotoItems.add(PhotoItem(uriString = Uri.fromFile(file).toString()))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (newPhotoItems.isNotEmpty()) {
+            val current = getPhotos().toMutableList()
+            current.addAll(newPhotoItems)
+            savePhotos(current)
+        }
+        return newPhotoItems.size
     }
 
     fun removePhoto(id: String) {

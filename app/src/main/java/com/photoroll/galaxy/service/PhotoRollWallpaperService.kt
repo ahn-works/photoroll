@@ -510,39 +510,84 @@ class PhotoRollWallpaperService : WallpaperService() {
         private fun loadBitmapFromUri(uri: Uri, callback: (Bitmap?) -> Unit) {
             Thread {
                 var bitmap: Bitmap? = null
-                var stream: InputStream? = null
                 try {
-                    stream = openStreamSafely(uri)
-                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    BitmapFactory.decodeStream(stream, null, options)
-                    stream?.close()
-
                     val targetW = surfaceWidth.coerceAtLeast(1080)
                     val targetH = surfaceHeight.coerceAtLeast(1920)
-                    var inSampleSize = 1
-                    while (options.outWidth / inSampleSize > targetW || options.outHeight / inSampleSize > targetH) {
-                        inSampleSize *= 2
-                    }
 
-                    stream = openStreamSafely(uri)
-                    val decodeOptions = BitmapFactory.Options().apply {
-                        this.inSampleSize = inSampleSize
-                        inPreferredConfig = Bitmap.Config.ARGB_8888
-                    }
-                    val rawBitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
+                    if (uri.scheme == "file" && uri.path != null) {
+                        val filePath = uri.path!!
+                        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeFile(filePath, options)
 
-                    bitmap = if (rawBitmap != null) {
-                        applyExifOrientation(uri, rawBitmap)
-                    } else null
+                        var inSampleSize = 1
+                        while (options.outWidth / inSampleSize > targetW || options.outHeight / inSampleSize > targetH) {
+                            inSampleSize *= 2
+                        }
+
+                        val decodeOptions = BitmapFactory.Options().apply {
+                            this.inSampleSize = inSampleSize
+                            inPreferredConfig = Bitmap.Config.ARGB_8888
+                        }
+                        val rawBitmap = BitmapFactory.decodeFile(filePath, decodeOptions)
+                        bitmap = if (rawBitmap != null) {
+                            applyExifOrientationFromFile(filePath, rawBitmap)
+                        } else null
+                    } else {
+                        var stream = openStreamSafely(uri)
+                        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeStream(stream, null, options)
+                        stream?.close()
+
+                        var inSampleSize = 1
+                        while (options.outWidth / inSampleSize > targetW || options.outHeight / inSampleSize > targetH) {
+                            inSampleSize *= 2
+                        }
+
+                        stream = openStreamSafely(uri)
+                        val decodeOptions = BitmapFactory.Options().apply {
+                            this.inSampleSize = inSampleSize
+                            inPreferredConfig = Bitmap.Config.ARGB_8888
+                        }
+                        val rawBitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
+                        stream?.close()
+
+                        bitmap = if (rawBitmap != null) {
+                            applyExifOrientation(uri, rawBitmap)
+                        } else null
+                    }
                 } catch (t: Throwable) {
                     t.printStackTrace()
                     System.gc()
-                } finally {
-                    try { stream?.close() } catch (ignored: Exception) {}
                 }
 
                 handler.post { callback(bitmap) }
             }.start()
+        }
+
+        private fun applyExifOrientationFromFile(filePath: String, source: Bitmap): Bitmap {
+            return try {
+                val exif = androidx.exifinterface.media.ExifInterface(filePath)
+                val orientation = exif.getAttributeInt(
+                    androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+                )
+                val degrees = when (orientation) {
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+                if (degrees != 0f) {
+                    val matrix = Matrix().apply { postRotate(degrees) }
+                    val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+                    if (rotated != source) source.recycle()
+                    rotated
+                } else {
+                    source
+                }
+            } catch (e: Exception) {
+                source
+            }
         }
 
         private fun openStreamSafely(uri: Uri): InputStream? {

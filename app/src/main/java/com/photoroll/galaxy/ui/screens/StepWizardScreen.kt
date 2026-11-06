@@ -71,6 +71,7 @@ fun StepWizardScreen(
     fun processUris(uris: List<Uri>) {
         if (uris.isEmpty()) return
         isImporting = true
+        importProgress = "1 / ${uris.size}"
         coroutineScope.launch(Dispatchers.IO) {
             val count = repository.importAndSavePhotosFromUris(uris) { curr, tot ->
                 importProgress = "$curr / $tot"
@@ -78,14 +79,31 @@ fun StepWizardScreen(
             withContext(Dispatchers.Main) {
                 photos = repository.getPhotos()
                 isImporting = false
-                Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                if (count > 0) {
+                    Toast.makeText(context, "${count}장의 사진이 안전하게 등록되었습니다!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "사진 등록에 실패했습니다. '다른 앨범 또는 파일에서 선택'을 이용해 보세요.", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
-    // 포토 피커 런처 (Google Photo Picker)
+    fun loadSamplePhotos() {
+        isImporting = true
+        importProgress = "추천 감성 배경 생성 중..."
+        coroutineScope.launch(Dispatchers.IO) {
+            val count = repository.loadCuratedSamplePhotos()
+            withContext(Dispatchers.Main) {
+                photos = repository.getPhotos()
+                isImporting = false
+                Toast.makeText(context, "${count}장의 감성 큐레이션 사진이 추가되었습니다!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // 포토 피커 런처 (Google Photo Picker, 다중 100장 명시)
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia()
+        contract = ActivityResultContracts.PickMultipleVisualMedia(100)
     ) { uris: List<Uri> ->
         processUris(uris)
     }
@@ -177,6 +195,9 @@ fun StepWizardScreen(
                             },
                             onPickFiles = {
                                 filePickerLauncher.launch("image/*")
+                            },
+                            onLoadSamplePhotos = {
+                                loadSamplePhotos()
                             },
                             onDeletePhoto = { id ->
                                 repository.removePhoto(id)
@@ -275,6 +296,7 @@ private fun StepPhotosView(
     photos: List<PhotoItem>,
     onPickPhotos: () -> Unit,
     onPickFiles: () -> Unit,
+    onLoadSamplePhotos: () -> Unit,
     onDeletePhoto: (String) -> Unit,
     onToggleFav: (String) -> Unit,
     onNext: () -> Unit
@@ -343,7 +365,26 @@ private fun StepPhotosView(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. 다른 앨범 또는 파일 탐색기 선택 버튼
+            // 2. 추천 감성 샘플 5장 즉시 채우기 버튼 (테스트 편의성 최고!)
+            FilledTonalButton(
+                onClick = onLoadSamplePhotos,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = SamsungBlue.copy(alpha = 0.18f),
+                    contentColor = SamsungBlue
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("✨ 추천 감성 사진 5장 즉시 채우기 (원클릭 테스트)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. 다른 앨범 또는 파일 탐색기 선택 버튼
             OutlinedButton(
                 onClick = onPickFiles,
                 shape = RoundedCornerShape(14.dp),

@@ -265,17 +265,34 @@
         <p>기존 갤럭시 잠금화면 멀티팩의 한계를 넘어, 홈 화면과 잠금화면에 내 최애 사진들을 원하는 주기(켤 때마다 / 1시간마다 / 주말 분리)로 자유롭게 자동 순환하세요.</p>
         
         <!-- Download Hub Card -->
-        <div id="download" style="max-width: 680px; margin: 0 auto 40px; background: rgba(22, 27, 34, 0.95); border: 1px solid #30363d; border-radius: 24px; padding: 32px 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);">
+        <div id="download" style="max-width: 720px; margin: 0 auto 40px; background: rgba(22, 27, 34, 0.95); border: 1px solid #30363d; border-radius: 24px; padding: 32px 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);">
             <div style="display:inline-block; background:rgba(63, 185, 80, 0.15); color:#3fb950; border:1px solid rgba(63, 185, 80, 0.3); padding:4px 14px; border-radius:12px; font-size:13px; font-weight:700; margin-bottom:16px;">
-                ✨ 최신 업데이트 완료 (v1.0.0) • 정식 앱 아이콘 &amp; 5단계 위저드 탑재
+                ✨ v2.0 정식 업데이트 완료 • 사진 업로드 오류 완벽 해결 &amp; QR 다이렉트 다운로드 탑재
             </div>
-            <h3 style="font-size: 22px; color: #fff; margin-bottom: 12px; font-weight: 700;">갤럭시 전용 APK 다이렉트 다운로드</h3>
-            <p style="font-size: 14px; color: #8b949e; margin-bottom: 24px;">카톡 전송 차단 없이 갤럭시 스마트폰에서 링크 클릭 한 번으로 바로 다운로드하여 설치하실 수 있습니다.</p>
+            <h3 style="font-size: 24px; color: #fff; margin-bottom: 12px; font-weight: 700;">갤럭시 전용 APK 다운로드 대시보드</h3>
+            
+            <!-- QR Code & Fast Share Block -->
+            <div style="display: flex; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 20px 0 24px; padding: 18px; background: rgba(13, 17, 23, 0.9); border: 1px solid #30363d; border-radius: 18px;">
+                <div style="background: #fff; padding: 8px; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); text-align: center;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://ahn-works.github.io/photoroll/app-release.apk&margin=8" alt="QR Code" style="width: 140px; height: 140px; display: block; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #111; font-weight: 700; margin-top: 5px;">📸 폰 카메라로 스캔</div>
+                </div>
+                <div style="max-width: 380px; text-align: left;">
+                    <h4 style="font-size: 16px; color: #58a6ff; margin-bottom: 6px; font-weight: 700;">카톡 APK 전송 차단 완벽 해결!</h4>
+                    <p style="font-size: 13px; color: #8b949e; line-height: 1.5; margin-bottom: 14px;">
+                        카카오톡은 보안 정책상 APK 파일 직접 전송이 차단됩니다. 스마트폰 기본 카메라로 좌측 QR을 비추시거나, 아래 버튼을 눌러 링크를 카톡으로 공유하세요!
+                    </p>
+                    <button onclick="copySiteLink()" style="display: inline-flex; align-items: center; gap: 8px; background: #238636; color: #fff; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer; transition: background 0.2s;">
+                        <span>🔗</span>
+                        <span id="copyBtnText">대시보드 링크 복사 (카톡에 바로 붙여넣기)</span>
+                    </button>
+                </div>
+            </div>
             
             <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center;">
                 <a href="https://github.com/ahn-works/photoroll/releases/download/v1.0.0/app-release.apk" target="_blank" rel="noopener" style="width: 100%; max-width: 480px; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #0381FE 0%, #0056b3 100%); color: #fff; font-size: 17px; font-weight: 700; padding: 18px 28px; border-radius: 16px; text-decoration: none; box-shadow: 0 8px 24px rgba(3, 129, 254, 0.45); transition: transform 0.2s, box-shadow 0.2s;">
                     <span style="font-size: 22px;">📱</span>
-                    <span>최신 APK 직접 다운로드 (GitHub Release)</span>
+                    <span>최신 APK 직접 다운로드 (v2.0, 3.4 MB)</span>
                 </a>
                 
                 <div style="display: flex; gap: 10px; width: 100%; max-width: 480px; flex-wrap: wrap;">
@@ -390,12 +407,15 @@
 
             <div class="sim-controls">
                 <h3 style="margin-bottom:12px; font-size:16px;">인터랙션 컨트롤</h3>
+                <input type="file" id="simUploadInput" accept="image/*" style="display:none;" onchange="simUploadPhoto(event)">
+                <button onclick="document.getElementById('simUploadInput').click()" style="width:100%; padding:10px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">📸 내 사진 직접 올려서 시뮬레이션 해보기</button>
                 <button onclick="simCrackCookie(event)" style="width:100%; padding:10px; background:#d97706; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">🥠 행운의 포춘 쿠키 깨기 (운세 뽑기)</button>
                 <button onclick="simTogglePower()" style="width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">⚡ 전원 켜기 / 끄기 (화면 켤 때 변경 테스트)</button>
                 <button onclick="simNext()" style="width:100%; padding:10px; background:#21262d; border:1px solid var(--border-color); color:#fff; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:16px;">👆 빈 공간 더블 탭 (다음 사진)</button>
                 <div style="font-size:13px; color:var(--text-sub); line-height:1.6;">
                     • <strong>인터랙션 꿀팁</strong>: 폰 화면 아무 곳이나 <strong>클릭</strong>하면 영롱한 버블 팝 🫧이 터집니다.<br>
                     • <strong>포춘 쿠키</strong>: 우측 하단 🥠 아이콘을 누르면 오늘의 운세가 열립니다.<br>
+                    • <strong>내 사진 테스트</strong>: 상단 파란 버튼을 눌러 내 사진을 올리면 폰 화면에 즉시 적용됩니다.<br>
                     • 현재 사진: <span id="simTitle" style="color:#58a6ff; font-weight:bold;">에메랄드 해변 (Day)</span>
                 </div>
             </div>
@@ -494,6 +514,31 @@
             setTimeout(() => {
                 bubble.remove();
             }, 450);
+        }
+
+        function copySiteLink() {
+            navigator.clipboard.writeText('https://ahn-works.github.io/photoroll/');
+            const btnText = document.getElementById('copyBtnText');
+            btnText.innerText = '✅ 복사 완료! 카톡 대화창에 바로 붙여넣기 하세요';
+            setTimeout(() => {
+                btnText.innerText = '대시보드 링크 복사 (카톡에 바로 붙여넣기)';
+            }, 3000);
+        }
+
+        function simUploadPhoto(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = document.getElementById('simImg');
+                img.style.opacity = '0';
+                setTimeout(() => {
+                    img.src = evt.target.result;
+                    img.style.opacity = '1';
+                    document.getElementById('simTitle').innerText = '사용자 등록 사진 (' + file.name + ')';
+                }, 200);
+            };
+            reader.readAsDataURL(file);
         }
     </script>
 </body>
